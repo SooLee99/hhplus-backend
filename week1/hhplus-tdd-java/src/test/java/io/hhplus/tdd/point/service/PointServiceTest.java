@@ -1,9 +1,6 @@
 package io.hhplus.tdd.point.service;
 
-import io.hhplus.tdd.exception.InsufficientBalanceException;
-import io.hhplus.tdd.exception.InvalidAmountException;
-import io.hhplus.tdd.exception.MaxPointLimitExceededException;
-import io.hhplus.tdd.exception.UserNotFoundException;
+import io.hhplus.tdd.exception.*;
 import io.hhplus.tdd.point.domain.PointHistory;
 import io.hhplus.tdd.point.domain.TransactionType;
 import io.hhplus.tdd.point.domain.UserPoint;
@@ -104,13 +101,14 @@ public class PointServiceTest {
 
         // when: validateUserExists를 모의 처리하여 사용자 정보를 반환하도록 설정
         when(pointValidationService.validateUserExists(userId)).thenReturn(mockUserPoint);
-        when(userPointRepository.insertOrUpdate(userId, initialBalance + chargeAmount)).thenThrow(new MaxPointLimitExceededException("포인트 최대 한도를 초과하였습니다."));
+        when(userPointRepository.insertOrUpdate(userId, initialBalance + chargeAmount))
+                .thenThrow(new MaxPointLimitExceededException());
 
         // then: 최대 포인트 한도 초과로 인해 예외 발생 확인
         MaxPointLimitExceededException exception = assertThrows(MaxPointLimitExceededException.class, () -> {
             pointService.chargeUserPoint(userId, chargeAmount);
         });
-        assertEquals("포인트 최대 한도를 초과하였습니다.", exception.getMessage());
+        assertEquals(ErrorCode.MAX_POINT_LIMIT_EXCEEDED.getMessage(), exception.getMessage());
 
         // 검증: 호출된 메서드 확인
         verify(pointValidationService, times(1)).validateUserExists(userId);
@@ -139,7 +137,7 @@ public class PointServiceTest {
         InvalidAmountException exception = assertThrows(InvalidAmountException.class, () -> {
             pointService.chargeUserPoint(userId, chargeAmount);
         });
-        assertEquals("유효하지 않은 금액입니다.", exception.getMessage());
+        assertEquals(ErrorCode.INVALID_AMOUNT.getMessage(), exception.getMessage());
 
         verify(userPointRepository, never()).selectById(anyLong());
         verify(userPointRepository, never()).insertOrUpdate(anyLong(), anyLong());
@@ -150,7 +148,7 @@ public class PointServiceTest {
      * 1.1.4. 충전 금액이 음수일 경우 테스트
      * 상황: 사용자가 음수 금액을 충전하려는 경우.
      * 입력: 충전 금액이 음수.
-     * 예상 결과: InvalidAmountException  발생, "유효하지 않은 금액" 메시지 반환.
+     * 예상 결과: InvalidAmountException 발생, "유효하지 않은 금액" 메시지 반환.
      */
     @Test
     @DisplayName("음수 금액 검증 테스트")
@@ -169,7 +167,7 @@ public class PointServiceTest {
         });
 
         // 예외 메시지가 정확한지 검증
-        assertEquals("유효하지 않은 금액입니다.", exception.getMessage());
+        assertEquals(ErrorCode.INVALID_AMOUNT.getMessage(), exception.getMessage());
     }
 
     /**
@@ -185,15 +183,15 @@ public class PointServiceTest {
         long invalidUserId = 999L;
 
         // when: userPointRepository.selectById()가 null을 반환하도록 설정
-        when(pointValidationService.validateUserExists(invalidUserId)).thenThrow(new UserNotFoundException());
-
+        when(pointValidationService.validateUserExists(invalidUserId))
+                .thenThrow(new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()));
         // then: 충전 요청 시 예외 발생 확인
         UserNotFoundException exception = assertThrows(UserNotFoundException.class, () -> {
             pointService.chargeUserPoint(invalidUserId, 100L);
         });
 
         // 예외 메시지가 정확한지 확인
-        assertEquals("존재하지 않는 사용자 ID입니다.", exception.getMessage());
+        assertEquals(ErrorCode.USER_NOT_FOUND.getMessage(), exception.getMessage());
 
         // 검증: userPointRepository의 selectById 호출 확인
         verify(pointValidationService, times(1)).validateUserExists(invalidUserId);
@@ -230,8 +228,8 @@ public class PointServiceTest {
 
         // Then
         assertEquals(userId, response.id());
-        assertEquals(currentBalance - useAmount, response.updatedPoint());
-        assertEquals("포인트 사용 완료", response.message());
+        assertEquals(currentBalance - useAmount, response.point());  // response.updatedPoint() -> response.point()로 수정
+        assertNotNull(response.updateMillis());  // 응답의 업데이트 시간 확인
 
         // Verify
         verify(pointValidationService, times(1)).validateUserExists(userId);  // 사용자 검증 호출 확인
@@ -240,7 +238,6 @@ public class PointServiceTest {
         verify(userPointRepository, times(1)).insertOrUpdate(userId, currentBalance - useAmount);  // 업데이트 확인
         verify(pointHistoryRepository, times(1)).insert(eq(userId), eq(useAmount), eq(TransactionType.USE), anyLong());  // 기록 확인
     }
-
 
     /**
      * 1.2.2. 잔액이 부족한 경우 테스트
@@ -262,7 +259,7 @@ public class PointServiceTest {
         doNothing().when(pointValidationService).checkAmount(useAmount);  // 금액 검증
 
         // 잔액 부족 시 검증에서 예외 발생
-        doThrow(new InsufficientBalanceException("잔액이 부족합니다."))
+        doThrow(new InsufficientBalanceException(ErrorCode.INSUFFICIENT_BALANCE.getMessage()))
                 .when(pointValidationService).validateSufficientBalance(currentBalance, useAmount);
 
         // When & Then: 잔액이 부족한 경우 InsufficientBalanceException 발생 확인
@@ -270,7 +267,7 @@ public class PointServiceTest {
             pointService.usePoints(userId, useAmount);
         });
 
-        assertEquals("잔액이 부족합니다.", exception.getMessage());
+        assertEquals(ErrorCode.INSUFFICIENT_BALANCE.getMessage(), exception.getMessage());
 
         // Verify
         verify(pointValidationService, times(1)).validateUserExists(userId);  // 사용자 검증 호출 확인
@@ -304,8 +301,7 @@ public class PointServiceTest {
             pointService.usePoints(userId, useAmount);
         });
 
-        assertEquals("유효하지 않은 금액입니다.", exception.getMessage());
-
+        assertEquals(ErrorCode.INVALID_AMOUNT.getMessage(), exception.getMessage());
         // Verify
         verify(pointValidationService, times(1)).checkAmount(useAmount);
         verify(userPointRepository, never()).selectById(anyLong());
@@ -332,8 +328,7 @@ public class PointServiceTest {
             pointService.usePoints(userId, useAmount);
         });
 
-        assertEquals("유효하지 않은 금액입니다.", exception.getMessage());
-
+        assertEquals(ErrorCode.INVALID_AMOUNT.getMessage(), exception.getMessage());
         // Verify
         verify(userPointRepository, never()).selectById(anyLong());
         verify(userPointRepository, never()).insertOrUpdate(anyLong(), anyLong());
@@ -353,7 +348,7 @@ public class PointServiceTest {
         long invalidUserId = 999L;
 
         // Mock 설정: validateUserExists 메서드가 호출될 때 UserNotFoundException 던지도록 설정
-        doThrow(new UserNotFoundException("존재하지 않는 사용자 ID입니다."))
+        doThrow(new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()))
                 .when(pointValidationService).validateUserExists(invalidUserId);
 
         // When & Then: 존재하지 않는 사용자로 인해 UserNotFoundException 발생 확인
@@ -362,7 +357,7 @@ public class PointServiceTest {
         });
 
         // 예외 메시지 확인
-        assertEquals("존재하지 않는 사용자 ID입니다.", exception.getMessage());
+        assertEquals(ErrorCode.USER_NOT_FOUND.getMessage(), exception.getMessage());
 
         // Verify: 검증 로직 확인
         verify(pointValidationService, times(1)).validateUserExists(invalidUserId);
@@ -409,7 +404,7 @@ public class PointServiceTest {
         Long invalidUserId = 999L;
 
         // when: validateUserExists가 호출될 때 UserNotFoundException을 던지도록 설정
-        doThrow(new UserNotFoundException("존재하지 않는 사용자 ID입니다."))
+        doThrow(new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()))
                 .when(pointValidationService).validateUserExists(invalidUserId);
 
         // then: UserNotFoundException이 발생하는지 확인
@@ -417,7 +412,7 @@ public class PointServiceTest {
             pointService.getBalance(invalidUserId);
         });
 
-        assertEquals("존재하지 않는 사용자 ID입니다.", exception.getMessage());
+        assertEquals(ErrorCode.USER_NOT_FOUND.getMessage(), exception.getMessage());
 
         // Verify: validateUserExists가 정확히 1회 호출되었는지 확인
         verify(pointValidationService, times(1)).validateUserExists(invalidUserId);
@@ -502,7 +497,7 @@ public class PointServiceTest {
         Long invalidUserId = 999L;
 
         // 사용자 검증 로직에서 UserNotFoundException 던지도록 설정
-        doThrow(new UserNotFoundException("존재하지 않는 사용자 ID입니다."))
+        doThrow(new UserNotFoundException(ErrorCode.USER_NOT_FOUND.getMessage()))
                 .when(pointValidationService).validateUserExists(invalidUserId);
 
         // When: 거래 내역 조회 시도
@@ -510,8 +505,8 @@ public class PointServiceTest {
             pointService.getPointHistories(invalidUserId);
         });
 
-        // Then: 적절한 예외 메시지가 반환됨
-        assertEquals("존재하지 않는 사용자 ID입니다.", exception.getMessage());
+        // Then: UserNotFoundException 발생 확인
+        assertEquals(ErrorCode.USER_NOT_FOUND.getMessage(), exception.getMessage());
 
         // 검증: validateUserExists가 한 번 호출되었는지 확인
         verify(pointValidationService, times(1)).validateUserExists(invalidUserId);
@@ -708,5 +703,111 @@ public class PointServiceTest {
             System.out.println("사용자 " + userIds[i] + "의 최종 잔액: " + balances[i]);
             assertEquals(expectedFinalBalance, balances[i]);
         }
+    }
+
+    /**
+     * 같은 유저에게 여러 포인트 충전 및 사용 요청을 순차적으로 보내고 최종 잔액을 검증하는 테스트
+     * 상황: 700원 충전, 1000원 충전, 400원 충전, 500원 충전, 300원 사용 요청을 순차적으로 실행
+     * 예상 결과: 최종 잔액이 (700 + 1000 + 400 + 500 - 300)원과 일치해야 함
+     */
+    @Test
+    @DisplayName("순차적인 포인트 충전 및 사용 테스트")
+    public void testSequentialPointOperations() {
+        // Given
+        long userId = 1L;
+        final long[] currentBalance = {0L}; // 잔액을 저장할 공유 변수
+
+        // 사용자 검증 설정
+        when(pointValidationService.validateUserExists(userId)).thenAnswer(invocation -> {
+            return new UserPoint(userId, currentBalance[0], System.currentTimeMillis());
+        });
+
+        // 잔액 업데이트 시 새로운 UserPoint 반환 및 잔액 누적
+        when(userPointRepository.insertOrUpdate(eq(userId), anyLong())).thenAnswer(invocation -> {
+            long newBalance = invocation.getArgument(1);
+            currentBalance[0] = newBalance; // 잔액 업데이트
+            return new UserPoint(userId, newBalance, System.currentTimeMillis());
+        });
+
+        // 거래 내역 저장 시 호출되는 메서드 모킹 (필요에 따라 수정)
+        when(pointHistoryRepository.insert(anyLong(), anyLong(), any(), anyLong()))
+                .thenReturn(new PointHistory(1L, userId, 0L, TransactionType.CHARGE, System.currentTimeMillis()));
+
+        // When
+        pointService.chargeUserPoint(userId, 700L);   // 잔액: 0 + 700 = 700
+        pointService.chargeUserPoint(userId, 1000L);  // 잔액: 700 + 1000 = 1700
+        pointService.chargeUserPoint(userId, 400L);   // 잔액: 1700 + 400 = 2100
+        pointService.chargeUserPoint(userId, 500L);   // 잔액: 2100 + 500 = 2600
+        pointService.usePoints(userId, 300L);         // 잔액: 2600 - 300 = 2300
+
+        // Then
+        // 최종 잔액 확인
+        when(userPointRepository.selectById(userId)).thenReturn(new UserPoint(userId, currentBalance[0], System.currentTimeMillis()));
+        UserPointResponse result = pointService.getBalance(userId);
+        long expectedBalance = 700L + 1000L + 400L + 500L - 300L;
+        assertEquals(expectedBalance, result.point());
+    }
+
+    /**
+     * 같은 유저에게 지연된 포인트 충전 요청을 보내고 순서대로 적재되었는지 검증하는 테스트
+     * 상황: 700원 충전, 10초 후 1000원 충전, 15초 후 400원 충전
+     * 예상 결과: 거래 내역이 해당 순서대로 적재되고 최종 잔액이 올바른지 확인
+     */
+    @Test
+    @DisplayName("지연된 포인트 충전 요청 순서 확인 테스트")
+    public void testDelayedPointOperations() throws InterruptedException {
+        // Given
+        long userId = 1L;
+        final long[] currentBalance = {0L};
+
+        // 사용자 검증 설정
+        when(pointValidationService.validateUserExists(userId)).thenAnswer(invocation -> {
+            return new UserPoint(userId, currentBalance[0], System.currentTimeMillis());
+        });
+
+        // 잔액 업데이트 시 새로운 UserPoint 반환 및 잔액 누적
+        when(userPointRepository.insertOrUpdate(eq(userId), anyLong())).thenAnswer(invocation -> {
+            long newBalance = invocation.getArgument(1);
+            currentBalance[0] = newBalance;
+            return new UserPoint(userId, newBalance, System.currentTimeMillis());
+        });
+
+        // 거래 내역 저장 시 호출되는 메서드 모킹
+        when(pointHistoryRepository.insert(anyLong(), anyLong(), any(), anyLong()))
+                .thenReturn(new PointHistory(1L, userId, 0L, TransactionType.CHARGE, System.currentTimeMillis()));
+
+        // When
+        pointService.chargeUserPoint(userId, 700L);   // 잔액: 0 + 700 = 700
+
+        // 10ms 지연
+        Thread.sleep(10);
+
+        pointService.chargeUserPoint(userId, 1000L);  // 잔액: 700 + 1000 = 1700
+
+        // 추가로 5ms 지연
+        Thread.sleep(5);
+
+        pointService.chargeUserPoint(userId, 400L);   // 잔액: 1700 + 400 = 2100
+
+        // Then
+        // 최종 잔액 확인
+        when(userPointRepository.selectById(userId)).thenReturn(new UserPoint(userId, currentBalance[0], System.currentTimeMillis()));
+        UserPointResponse result = pointService.getBalance(userId);
+        long expectedBalance = 700L + 1000L + 400L;
+        assertEquals(expectedBalance, result.point());
+
+        // 거래 내역이 순서대로 적재되었는지 확인
+        List<PointHistory> pointHistories = List.of(
+                new PointHistory(1L, userId, 700L, TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(2L, userId, 1000L, TransactionType.CHARGE, System.currentTimeMillis()),
+                new PointHistory(3L, userId, 400L, TransactionType.CHARGE, System.currentTimeMillis())
+        );
+        when(pointHistoryRepository.selectAllByUserId(userId)).thenReturn(pointHistories);
+
+        List<UserPointHistoryResponse> histories = pointService.getPointHistories(userId);
+        assertEquals(3, histories.size());
+        assertEquals(700L, histories.get(0).amount());
+        assertEquals(1000L, histories.get(1).amount());
+        assertEquals(400L, histories.get(2).amount());
     }
 }

@@ -1,18 +1,16 @@
 package io.hhplus.tdd.point.dto.response;
 
 import io.hhplus.tdd.point.domain.UserPoint;
+
 import java.io.Serializable;
 
 public record UseUserPointResponse(
         long id,
-        long updatedPoint,
-        String message
+        long point,
+        long updateMillis
 ) implements Serializable {
-    public static UseUserPointResponse from(UserPoint userPoint) {
-        return new UseUserPointResponse(
-                userPoint.id(),
-                userPoint.point(),
-                "포인트 사용 완료"
-        );
+    public static UseUserPointResponse from(long id, long point, long updateMillis){
+        return new UseUserPointResponse(id, point, updateMillis);
     }
+
 }

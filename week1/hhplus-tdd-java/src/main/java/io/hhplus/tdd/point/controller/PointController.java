@@ -24,13 +24,13 @@ public class PointController {
         this.pointService = pointService;
     }
 
+
     /**
      * 사용자 포인트 잔액 조회
      */
     @GetMapping("{id}")
     public ResponseEntity<UserPointResponse> point(@PathVariable long id) {
-        UserPointResponse response = pointService.getBalance(id);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(pointService.getBalance(id));
     }
 
     /**
@@ -38,8 +38,7 @@ public class PointController {
      */
     @GetMapping("{id}/histories")
     public ResponseEntity<List<UserPointHistoryResponse>> history(@PathVariable long id) {
-        List<UserPointHistoryResponse> histories = pointService.getPointHistories(id);
-        return ResponseEntity.ok(histories);
+        return ResponseEntity.ok(pointService.getPointHistories(id));
     }
 
     /**
@@ -47,8 +46,7 @@ public class PointController {
      */
     @PatchMapping("{id}/charge")
     public ResponseEntity<ChargeUserPointResponse> charge(@PathVariable long id, @RequestBody ChargePointRequest request) {
-        ChargeUserPointResponse response = pointService.chargeUserPoint(id, request.getAmount());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(pointService.chargeUserPoint(id, request.getAmount()));
     }
 
     /**
@@ -56,7 +54,6 @@ public class PointController {
      */
     @PatchMapping("{id}/use")
     public ResponseEntity<UseUserPointResponse> usePoints(@PathVariable long id, @RequestBody UsePointRequest request) {
-        UseUserPointResponse response = pointService.usePoints(id, request.getAmount());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(pointService.usePoints(id, request.getAmount()));
     }
 }
