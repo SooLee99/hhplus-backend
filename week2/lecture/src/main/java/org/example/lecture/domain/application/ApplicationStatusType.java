@@ -1,5 +1,8 @@
-package org.example.lecture.domain.status;
+package org.example.lecture.domain.application;
 
+import lombok.Getter;
+
+@Getter
 public enum ApplicationStatusType {
     APPLIED("신청 완료"),          // 사용자가 신청한 상태
     CANCELED("신청 취소"),         // 사용자가 신청을 취소한 상태
@@ -10,10 +13,6 @@ public enum ApplicationStatusType {
 
     ApplicationStatusType(String description) {
         this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
     // 상태 값으로부터 특정 비즈니스 로직 처리 가능

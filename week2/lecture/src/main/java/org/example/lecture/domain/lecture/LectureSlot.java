@@ -1,4 +1,4 @@
-package org.example.lecture.domain;
+package org.example.lecture.domain.lecture;
 
 
 import jakarta.persistence.*;
@@ -8,7 +8,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
- * [강의 날짜별 정원 엔티티]
+ * [특정 날짜의 강의 정원 정보 엔티티]
+ * - 특정 날짜의 강의 슬롯 관리하는 엔티티 클래스
  */
 @Entity
 @Table(name = "lecture_slot")
@@ -19,8 +20,9 @@ import java.time.LocalDateTime;
 public class LectureSlot {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "slot_id", length = 36, nullable = false)
-    private String slotId;
+    private Long slotId;
 
     @ManyToOne
     @JoinColumn(name = "lecture_id", nullable = false)
@@ -38,7 +40,7 @@ public class LectureSlot {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    // 상태 확인 메서드
+    // 슬롯이 정원을 초과했는지 확인하는 메서드
     public boolean isFull() {
         return this.capacity <= 0;
     }

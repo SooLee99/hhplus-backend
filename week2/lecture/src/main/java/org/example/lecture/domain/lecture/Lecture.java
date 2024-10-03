@@ -1,13 +1,14 @@
-package org.example.lecture.domain;
+package org.example.lecture.domain.lecture;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * [강의 정보 엔티티]
+ * - 강의 정보를 관리하는 읽기 전용 엔티티 클래스
+ */
 
 @Entity
 @Table(name = "lecture")
@@ -18,8 +19,9 @@ import java.time.LocalDateTime;
 public class Lecture {
 
     @Id
-    @Column(name = "lecture_id", length = 36, nullable = false)
-    private String lectureId;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "lecture_id")
+    private Long lectureId;
 
     @Column(name = "name", nullable = false, length = 255)
     private String name;
@@ -39,7 +41,7 @@ public class Lecture {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    public static Lecture create(String lectureId, String name, String instructor, String description, int maxCapacity) {
+    public static Lecture create(Long lectureId, String name, String instructor, String description, int maxCapacity) {
         return Lecture.builder()
                 .lectureId(lectureId)
                 .name(name)

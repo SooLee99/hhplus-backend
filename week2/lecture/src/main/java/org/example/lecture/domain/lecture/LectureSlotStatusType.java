@@ -1,5 +1,8 @@
-package org.example.lecture.domain.status;
+package org.example.lecture.domain.lecture;
 
+import lombok.Getter;
+
+@Getter
 public enum LectureSlotStatusType {
     OPEN("신청 가능"),        // 강의 슬롯이 열려 있음
     FULL("정원 초과"),        // 강의 정원이 초과된 상태
@@ -9,10 +12,6 @@ public enum LectureSlotStatusType {
 
     LectureSlotStatusType(String description) {
         this.description = description;
-    }
-
-    public String getDescription() {
-        return description;
     }
 
     // 특정 상태일 때만 신청 가능 여부 확인

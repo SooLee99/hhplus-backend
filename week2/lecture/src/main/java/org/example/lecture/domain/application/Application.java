@@ -1,10 +1,14 @@
-package org.example.lecture.domain;
+package org.example.lecture.domain.application;
 
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDateTime;
-import org.example.lecture.domain.status.ApplicationStatusType;
 
+import org.example.lecture.domain.lecture.LectureSlot;
+
+/**
+ * 강의 신청 엔티티
+ */
 @Entity
 @Table(name = "application")
 @Getter
@@ -14,8 +18,9 @@ import org.example.lecture.domain.status.ApplicationStatusType;
 public class Application {
 
     @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "application_id", length = 36, nullable = false)
-    private String applicationId;
+    private Long applicationId;
 
     @ManyToOne
     @JoinColumn(name = "slot_id", nullable = false)
