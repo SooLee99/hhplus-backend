@@ -20,7 +20,7 @@ public class Application {
     @Column(name = "application_id", nullable = false)
     private Long applicationId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "slot_id", nullable = false)
     private LectureSlot lectureSlot;
 
