@@ -19,18 +19,11 @@ public enum LectureSlotStatusType {
         return this == OPEN;
     }
 
-    // 상태 변경 검증: 신청이 가능한 상태로 전환
-    public static LectureSlotStatusType transitionToOpen() {
-        return OPEN;
-    }
 
     // 상태 변경 검증: 정원 초과로 변경
     public static LectureSlotStatusType transitionToFull() {
         return FULL;
     }
 
-    // 상태 변경 검증: 신청 마감 상태로 변경
-    public static LectureSlotStatusType transitionToClosed() {
-        return CLOSED;
-    }
+
 }

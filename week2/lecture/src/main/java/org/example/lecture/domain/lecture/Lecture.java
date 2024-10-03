@@ -7,7 +7,7 @@ import java.time.LocalDateTime;
 
 /**
  * [강의 정보 엔티티]
- * - 강의 정보를 관리하는 읽기 전용 엔티티 클래스
+ * - 강의 정보를 관리하는 읽기 전용 엔티티 클래스 (불변 객체 - 수정, 삭제 불가)
  */
 
 @Entity
@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class Lecture {
+public final class Lecture {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -40,16 +40,4 @@ public class Lecture {
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    public static Lecture create(Long lectureId, String name, String instructor, String description, int maxCapacity) {
-        return Lecture.builder()
-                .lectureId(lectureId)
-                .name(name)
-                .instructor(instructor)
-                .description(description)
-                .maxCapacity(maxCapacity)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
 }

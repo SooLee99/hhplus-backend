@@ -12,14 +12,12 @@ import org.example.lecture.domain.lecture.LectureSlot;
 @Entity
 @Table(name = "application")
 @Getter
-@Builder
-@AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Application {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "application_id", length = 36, nullable = false)
+    @Column(name = "application_id", nullable = false)
     private Long applicationId;
 
     @ManyToOne
@@ -36,15 +34,16 @@ public class Application {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    // 상태 변경 메서드
-    public void cancelApplication() {
-        if (this.currentStatus.isCancelable()) {
-            this.currentStatus = ApplicationStatusType.cancel();
-        }
+    public Application(Long userId, LectureSlot slot) {
+        this.userId = userId;
+        this.lectureSlot = slot;
+        this.currentStatus = ApplicationStatusType.waitForSlot();
+        this.createdAt = LocalDateTime.now();
     }
 
-    // 대기 상태로 변경
-    public void moveToWaitingList() {
-        this.currentStatus = ApplicationStatusType.waitForSlot();
+    // 상태 변경 검증: 신청 상태로 전환
+    public void apply() {
+        this.currentStatus = ApplicationStatusType.apply();
     }
+
 }

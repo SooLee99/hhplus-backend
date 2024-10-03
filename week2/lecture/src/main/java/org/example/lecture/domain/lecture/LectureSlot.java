@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 
 /**
  * [특정 날짜의 강의 정원 정보 엔티티]
- * - 특정 날짜의 강의 슬롯 관리하는 엔티티 클래스
+ * - 특정 날짜에 진행되는 강의의 정원 정보를 관리하는 엔티티
  */
 @Entity
 @Table(name = "lecture_slot")
@@ -29,30 +29,14 @@ public class LectureSlot {
     private Lecture lecture;
 
     @Column(name = "date", nullable = false)
-    private LocalDate date;
+    private LocalDate date; // 강의가 진행되는 날짜
 
     @Column(name = "capacity", nullable = false, columnDefinition = "INT DEFAULT 30")
-    private int capacity;
+    private int capacity;   // 수용 가능 인원
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
-
-    // 슬롯이 정원을 초과했는지 확인하는 메서드
-    public boolean isFull() {
-        return this.capacity <= 0;
-    }
-
-    // 정적 팩토리 메서드
-    public static LectureSlot create(Lecture lecture, LocalDate date, int capacity) {
-        return LectureSlot.builder()
-                .lecture(lecture)
-                .date(date)
-                .capacity(capacity)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-    }
 }
