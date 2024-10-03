@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class LectureSlotStatus {
+public final class LectureSlotStatus {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
