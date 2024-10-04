@@ -5,6 +5,7 @@ import org.example.lecture.application.service.LectureSlotService;
 import org.example.lecture.application.service.LectureSlotStatusService;
 import org.example.lecture.domain.lecture.Lecture;
 import org.example.lecture.domain.lecture.LectureSlot;
+import org.example.lecture.domain.lecture.LectureSlotStatus;
 import org.example.lecture.domain.lecture.LectureSlotStatusType;
 import org.example.lecture.interfaces.dto.LectureResponseDTO;
 import org.springframework.stereotype.Service;
@@ -30,7 +31,7 @@ public class QueryLectureDetailsUsecase {
     }
 
     /**
-     * 2. 특강 선택 API => 특정 날짜의 신청 가능한 강의 목록을 반환
+     * [2. 특강 선택 API] => 특정 날짜의 신청 가능한 강의 목록을 반환
      *
      * @param date 조회할 날짜
      * @return 신청 가능한 Lecture 목록
@@ -48,9 +49,9 @@ public class QueryLectureDetailsUsecase {
         return lectureSlots.stream()
                 .map(slot -> {
                     // LectureSlot의 ID로 상태를 조회하고, 상태를 확인
-                    LectureSlotStatusType status = lectureSlotStatusService.getSlotStatusById(slot.getSlotId())
-                            .orElseThrow(() -> new LectureNotFoundException("해당 슬롯의 상태 정보를 찾을 수 없습니다."))
-                            .getStatus();
+                    LectureSlotStatus slotStatus = lectureSlotStatusService.getSlotStatusBySlotIdWithLock(slot.getSlotId());
+
+                    LectureSlotStatusType status = slotStatus.getStatus();
 
                     // Lecture 정보 가져오기
                     Lecture lecture = slot.getLecture();
@@ -65,13 +66,10 @@ public class QueryLectureDetailsUsecase {
                             .slotDate(slot.getDate())  // 슬롯 날짜
                             .capacity(slot.getCapacity())  // 슬롯 최대 수용 가능 인원
                             .status(status)  // 슬롯 상태 (OPEN, FULL, CLOSED)
-                            .currentApplicants(lectureSlotStatusService.getSlotStatusById(slot.getSlotId())
-                                    .orElseThrow(() -> new LectureNotFoundException("해당 슬롯의 상태 정보를 찾을 수 없습니다."))
-                                    .getCurrentApplicants())  // 현재 신청자 수
+                            .currentApplicants(slotStatus.getCurrentApplicants())  // 현재 신청자 수
                             .lastUpdatedAt(slot.getUpdatedAt())  // 마지막 업데이트 시간
                             .build();
                 })
-                .filter(Objects::nonNull) // 상태가 신청 가능하지 않은 경우 null 값을 제거
                 .collect(Collectors.toList());
     }
 

@@ -16,12 +16,11 @@ import java.util.List;
 public class LectureSlotService {
 
     private final LectureSlotRepository lectureSlotRepository;
-    private final LectureSlotStatusService lectureSlotStatusService;
     private final LectureSlotStatusRepository lectureSlotStatusRepository;
 
-    public LectureSlotService(LectureSlotRepository lectureSlotRepository, LectureSlotStatusService lectureSlotStatusService, LectureSlotStatusRepository lectureSlotStatusRepository) {
+    public LectureSlotService(LectureSlotRepository lectureSlotRepository,
+                              LectureSlotStatusRepository lectureSlotStatusRepository) {
         this.lectureSlotRepository = lectureSlotRepository;
-        this.lectureSlotStatusService = lectureSlotStatusService;
         this.lectureSlotStatusRepository = lectureSlotStatusRepository;
     }
 
@@ -35,21 +34,22 @@ public class LectureSlotService {
 
     /**
      * [특정 강의 슬롯에 대한 선착순 정원 예약 - 비관적 락 적용]
-     * - PESSIMISTIC_WRITE 락을 사용하여 동시에 다른 트랜잭션이 접근할 수 없도록 보장.
+     * - 데이터베이스의 PESSIMISTIC_WRITE 락을 사용하여 동시성 제어를 구현.
      *
      * @param lectureSlotId 예약할 강의 슬롯 ID
      * @return 예약된 강의 슬롯 엔티티
      */
     @Transactional
     public LectureSlot reserveSlotWithLock(Long lectureSlotId) {
-        // 비관적 락을 사용하여 강의 슬롯을 조회
-        LectureSlot lectureSlot = lectureSlotRepository.findBySlotIdWithPessimisticLock(lectureSlotId)
-                .orElseThrow(() -> new LectureSlotNotFoundException(lectureSlotId));
-
         // 비관적 락을 사용하여 강의 슬롯 상태를 조회
-        LectureSlotStatus slotStatus = lectureSlotStatusService.getSlotStatusBySlotIdWithLock(lectureSlotId)
+        LectureSlotStatus slotStatus = lectureSlotStatusRepository.findBySlotIdWithPessimisticLock(lectureSlotId)
                 .orElseThrow(() -> new LectureSlotNotFoundException(lectureSlotId));
 
+        // 강의 슬롯 정보 조회
+        LectureSlot lectureSlot = lectureSlotRepository.findById(lectureSlotId)
+                .orElseThrow(() -> new LectureSlotNotFoundException(lectureSlotId));
+
+        // 강의 슬롯 상태 검증
         if (slotStatus.getStatus() == LectureSlotStatusType.FULL) {
             throw new IllegalStateException("강의 정원이 초과되었습니다.");
         } else if (slotStatus.getStatus() == LectureSlotStatusType.CLOSED) {
@@ -69,7 +69,7 @@ public class LectureSlotService {
         // 변경된 상태 저장
         lectureSlotStatusRepository.save(slotStatus);
 
+        // 강의 슬롯 정보 반환
         return lectureSlot;
     }
-
 }
